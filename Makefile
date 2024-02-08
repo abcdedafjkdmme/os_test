@@ -1,19 +1,23 @@
-all: os-image
+AS := nasm
+CC := i686-elf-gcc
+LD := i686-elf-ld
+BUILD_DIR := build
+SRC_DIR := ./
 
-os-image: boot.bin kernel.bin
-	cat boot.bin kernel.bin > os-image 
-boot.bin : boot.asm
-	nasm -w-number-overflow boot.asm -f bin -o boot.bin
-kernel.bin : kernel.o kernel_entry.o 
-	i686-elf-ld -o kernel.bin -Ttext 0x1000 kernel_entry.o kernel.o --oformat binary
-kernel.o : kernel.c 
-	i686-elf-gcc -ffreestanding -o kernel.o -c kernel.c 
-kernel_entry.o : kernel_entry.asm 
-	nasm kernel_entry.asm -f elf -o kernel_entry.o 
+all: $(BUILD_DIR)/os-image
+
+$(BUILD_DIR)/os-image: $(BUILD_DIR)/boot.bin $(BUILD_DIR)/kernel.bin
+	cat $(BUILD_DIR)/boot.bin $(BUILD_DIR)/kernel.bin > $(BUILD_DIR)/os-image 
+$(BUILD_DIR)/boot.bin : boot.asm
+	$(AS) -w-number-overflow boot.asm -f bin -o $(BUILD_DIR)/boot.bin
+$(BUILD_DIR)/kernel.bin : $(BUILD_DIR)/kernel.o $(BUILD_DIR)/kernel_entry.o 
+	$(LD) -o $(BUILD_DIR)/kernel.bin -Ttext 0x1000 $(BUILD_DIR)/kernel_entry.o $(BUILD_DIR)/kernel.o --oformat binary
+$(BUILD_DIR)/kernel.o : kernel.c 
+	$(CC) -ffreestanding -o $(BUILD_DIR)/kernel.o -c kernel.c 
+$(BUILD_DIR)/kernel_entry.o : kernel_entry.asm 
+	$(AS) kernel_entry.asm -f elf -o $(BUILD_DIR)/kernel_entry.o 
 run : all
-	qemu-system-i386 -fda os-image
+	qemu-system-i386 -fda $(BUILD_DIR)/os-image
 
 clean :
-	rm *.o
-	rm *.bin
-	rm os-image
+	rm $(BUILD_DIR)/*
