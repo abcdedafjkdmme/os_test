@@ -4,6 +4,8 @@
 #include <stdint.h>
 
 #define VGA_MEM_OFFSET 0xb8000
+#define VGA_MAX_WIDTH 80
+#define VGA_MAX_HEIGHT 25
 #define VGA_MAX_COLUMN 80
 #define VGA_MAX_ROW 25
 
@@ -65,11 +67,6 @@ void print_string_at(char *str, char_attrib char_attribs, int row, int column) {
   }
 }
 
-void print_hex_prefix(char_attrib char_attribs, int row, int column) {
-  char hex_prefix[] = "0x";
-  print_string_at(hex_prefix, char_attribs, row, column);
-}
-
 char hex_digit_to_char(uint8_t digit, char_case c_case) {
   char c = 0;
   if (digit <= 9) {
@@ -81,17 +78,38 @@ char hex_digit_to_char(uint8_t digit, char_case c_case) {
   }
   return c;
 }
-
-void print_hex_byte_no_prefix(uint8_t byte, char_attrib char_attribs,
-                              char_case c_case, int row, int column) {
+void hex_byte_to_string(uint8_t byte, char_case c_case, char *string_buffer) {
   uint8_t lower_digit = (byte & 0x0F);
   uint8_t higher_digit = (byte >> 4);
 
-  char str[] = {hex_digit_to_char(higher_digit, c_case),
-                hex_digit_to_char(lower_digit, c_case), 0};
+  string_buffer[0] = hex_digit_to_char(higher_digit, c_case);
+  string_buffer[1] = hex_digit_to_char(lower_digit, c_case);
+}
+/*void print_hex_byte_no_prefix(uint8_t byte, char_attrib char_attribs,
+                              char_case c_case, int row, int column) {
+  char str[3];
+  hex_byte_to_string(byte, c_case, &str[0]);
+  print_string_at(str, char_attribs, row, column);
+}*/
+
+void print_hex_byte(uint8_t byte, char_attrib char_attribs, char_case c_case,
+                    int row, int column) {
+  char str[2 + 2 + 1] = "0x";
+  hex_byte_to_string(byte, c_case, &str[2]);
   print_string_at(str, char_attribs, row, column);
 }
-void enable_cursor(uint8_t cursor_start, uint8_t cursor_end) {
+
+void print_hex_word(uint16_t word, char_attrib char_attribs, char_case c_case,
+                    int row, int column) {
+  uint8_t low_byte = (word & 0x00FF);
+  uint8_t high_byte = (word >> 8);
+  char str[2 + 4 + 1] = "0x";
+  hex_byte_to_string(high_byte, c_case, &str[2]);
+  hex_byte_to_string(low_byte, c_case, &str[2 + 2]);
+  print_string_at(str, char_attribs, row, column);
+}
+void enable_cursor(void) { enable_cursor_ex(0, 15); }
+void enable_cursor_ex(uint8_t cursor_start, uint8_t cursor_end) {
   outb(0x3D4, 0x0A);
   outb(0x3D5, (inb(0x3D5) & 0xC0) | cursor_start);
 
@@ -103,7 +121,7 @@ void disable_cursor() {
   outb(0x3D5, 0x20);
 }
 void update_cursor(int x, int y) {
-  uint16_t pos = y * VGA_MAX_ROW + x;
+  uint16_t pos = y * VGA_MAX_WIDTH + x;
 
   outb(0x3D4, 0x0F);
   outb(0x3D5, (uint8_t)(pos & 0xFF));

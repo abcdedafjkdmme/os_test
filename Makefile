@@ -8,7 +8,7 @@ CC = i686-elf-gcc
 GDB =i686-elf-gdb
 LD = i686-elf-ld
 # -g: Use debugging symbols in gcc
-CFLAGS = -g -I./drivers -I./kernel -I./cstdlib
+CFLAGS = -g -Wall -Wextra -Wfloat-equal -Wshadow -Wpointer-arith -Wcast-align -Wconversion -Wunreachable-code -Wswitch-enum -Wswitch-default -Wcast-qual -Wwrite-strings -Wstrict-overflow=5 -Wstrict-prototypes -I./drivers -I./kernel -I./cstdlib
 
 # First rule is run by default
 os-image.bin: boot/boot.bin kernel.bin
