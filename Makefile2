@@ -1,0 +1,44 @@
+AS := nasm
+CC := i686-elf-gcc
+LD := i686-elf-ld
+CCFLAGS := -g -ffreestanding
+ASFLAGS := -f bin 
+LDFLAGS := -Ttext 0x1000 --oformat binary
+BUILD_DIR := build
+SRC_DIR := ./
+BOOT_DIR := boot
+KERNEL_DIR := kernel
+
+all: $(BUILD_DIR)/os-image
+
+$(BUILD_DIR)/os-image: $(BUILD_DIR)/boot.bin $(BUILD_DIR)/kernel.bin
+	cat $(BUILD_DIR)/boot.bin $(BUILD_DIR)/kernel.bin > $(BUILD_DIR)/os-image 
+
+$(BUILD_DIR)/boot.bin : $(BOOT_DIR)/boot.asm
+	$(AS) -I '$(BOOT_DIR)' $(ASFLAGS) $(BOOT_DIR)/boot.asm -o $(BUILD_DIR)/boot.bin
+
+$(BUILD_DIR)/kernel.bin : $(BUILD_DIR)/kernel.o $(BUILD_DIR)/kernel_entry.o 
+	$(LD) -o $(BUILD_DIR)/kernel.bin $(LDFLAGS) $(BUILD_DIR)/kernel_entry.o $(BUILD_DIR)/kernel.o
+
+$(BUILD_DIR)/kernel.o : $(KERNEL_DIR)/kernel.c 
+	$(CC) $(CCFLAGS) -o $(BUILD_DIR)/kernel.o -c $(KERNEL_DIR)/kernel.c 
+
+$(BUILD_DIR)/kernel_entry.o : $(KERNEL_DIR)/kernel_entry.asm 
+	$(AS) -I '$(BOOT_DIR)' $(KERNEL_DIR)/kernel_entry.asm -f elf -o $(BUILD_DIR)/kernel_entry.o 
+
+# Generic rules for wildcards
+# To make an object, always compile from its .c
+%.o: %.c ${HEADERS}
+	${CC} ${CFLAGS} -ffreestanding -c $< -o $@
+
+%.o: %.asm
+	nasm $< -f elf -o $@
+
+%.bin: %.asm
+	nasm $< -f bin -o $@
+
+run : all
+	qemu-system-i386 -fda $(BUILD_DIR)/os-image
+
+clean :
+	rm $(BUILD_DIR)/*
