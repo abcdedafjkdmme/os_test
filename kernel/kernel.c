@@ -1,9 +1,9 @@
+#include "idt.h"
 #include <print.h>
 
-#define GRAY_ON_BLACK                                                          \
-  (get_char_attrib(char_attrib_color_gray, char_attrib_color_black))
-
 void kmain() {
+
+  init_idt();
 
   clear_screen(char_attrib_color_black);
   enable_cursor();
@@ -30,6 +30,7 @@ void kmain() {
   uint16_t cursor_pos = get_cursor_position();
   print_hex_word(cursor_pos, GRAY_ON_BLACK, char_lower_case, 6, 5);
 
+  asm volatile("int $0x4");
   for (;;)
     (void)0;
 }
